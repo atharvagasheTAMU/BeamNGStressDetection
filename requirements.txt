@@ -1,0 +1,6 @@
+# Stress detection + BeamNG demo
+numpy>=1.24
+pylsl
+beamngpy>=1.32
+
+# EmotiBit middleware: pip install -r emotibit-live/requirements.txt

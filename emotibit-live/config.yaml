@@ -1,0 +1,28 @@
+streaming:
+  udp_host: localhost
+  udp_port: 12346
+  save_raw: true
+  data_dir: data
+  run_tag: ""
+  ppg_stream: PG
+  eda_stream: EA
+  skipped_streams: [TL, EM, RD, "B%", AK, BV]
+
+processing:
+  window_size_sec: 20
+  stride_sec: 1
+  edge_buffer_sec: 2
+  min_reliability: 80
+  live_processing: true
+  visualize_every_n_windows: 60
+
+offline:
+  ppg_csv: null
+  eda_csv: null
+  output_csv: null
+  is_e4: false
+
+timesync:
+  # IANA timezone of the PC that recorded the experiment (TL wall-clock strings).
+  # Texas: America/Chicago, California: America/Los_Angeles
+  recording_timezone: America/Chicago

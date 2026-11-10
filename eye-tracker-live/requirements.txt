@@ -1,0 +1,5 @@
+opencv-python>=4.10
+# Match EyeTracker/requirements.txt — mediapipe 1.x drops mp.solutions (FaceMesh/Pose).
+mediapipe==0.10.14
+numpy>=1.24
+pylsl
