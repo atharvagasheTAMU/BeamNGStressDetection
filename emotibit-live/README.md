@@ -211,6 +211,7 @@ You'll need **two terminal windows** open at the same time, both in the project 
 | Replay at real-world speed | `--speed 1` |
 | Only test a short clip | Add `--max-seconds 30` (or any number of seconds) |
 | Skip timestamp alignment and just test quickly | Use `python stream.py` in Terminal 1 instead (no `--timesync-csv` needed) |
+| Replay into `stream.py` / `lsl_bridge.py` | Add `--expand ''` on `replay.py` so samples are not split twice |
 
 ---
 
@@ -314,6 +315,9 @@ When deciding which files to read/write, the script checks, in order:
 | `--port` | `12346` | Must match `streaming.udp_port` |
 | `--speed` | `1.0` | Playback speed multiplier (`0` = as fast as possible) |
 | `--max-seconds` | none | Stop after this many seconds of recording time |
+| `--expand` | `PG,EA` | Before sending UDP, split bundled PG/EA lines into one value per packet (legacy workaround for old parsers) |
+
+**Multi-value packets (`stream.py`, `lsl_bridge.py`).** Oscilloscope UDP and raw CSV lines include `DataLength` and multiple payload values (e.g. `...,2,PG,1,100,503,498`). The live listener expands each datagram into one sample per value (with per-sample EmotiBit timestamps). For replay against the current listener, send wire format and **disable** replay expansion: `python replay.py file.csv --expand ''`. Default `--expand PG,EA` is only for older listeners that read the first value only.
 
 ### A.3 Timesync mode details
 

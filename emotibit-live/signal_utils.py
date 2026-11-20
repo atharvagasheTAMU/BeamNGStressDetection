@@ -297,7 +297,8 @@ def find_LH(ibi, peaks, sample_rate):
         peak = peaks[i]
         ibis = [ibi[i]] * (peak if i == 0 else peak - peaks[i - 1])
         signal.append(ibis)
-    signal = np.array([item for sublist in signal for item in sublist])
+    signal = [item for sublist in signal for item in sublist]
+    signal = np.asarray(signal, dtype=float)
 
     freq, power = sg.welch(signal, fs=sample_rate, scaling="density", nperseg=len(signal))
     step = freq[1] - freq[0]
@@ -329,7 +330,7 @@ def _safe_hrv_metrics(ibi, peaks, sample_rate):
         return -1, -1, -1
     try:
         return find_LH(ibi, peaks, sample_rate)
-    except (ValueError, ZeroDivisionError, IndexError):
+    except (ValueError, ZeroDivisionError, IndexError, TypeError):
         return -1, -1, -1
 
 

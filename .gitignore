@@ -7,7 +7,7 @@ dist/
 build/
 .venv/
 venv/
-
+emotibit-live-old
 # Secrets / local env
 .env
 .env.*

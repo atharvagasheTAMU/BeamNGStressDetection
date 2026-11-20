@@ -128,7 +128,7 @@ from run_utils import build_run_folder_name
 
 from signal_utils import FEATURE_COLUMNS, extract_window_features
 
-from stream import append_csv, buffer_to_df, load_config, parse_packet
+from stream import append_csv, buffer_to_df, load_config, parse_packet_samples
 
 
 
@@ -300,6 +300,8 @@ def main() -> None:
 
     window_count = 0
 
+    prev_emotibit_ms: dict[str, float] = {}
+
 
 
     live_output = processed_dir / "processed_data_live.csv"
@@ -390,232 +392,121 @@ def main() -> None:
 
 
 
-            sample = parse_packet(binary_data)
+            recv_unix = int(time.time())
+            for sample in parse_packet_samples(
+                binary_data, unix_time=recv_unix, prev_emotibit_ms=prev_emotibit_ms
+            ):
+                if sample["stream"] in skipped:
+                    continue
 
+                if sample["stream"] == "UN":
+                    if save_raw:
+                        append_csv(
+                            raw_dir / "stream_UN.csv",
+                            ["emotibit time", "unix time", "note", "reliability"],
+                            {
+                                "emotibit time": sample["emotibit_time_ms"],
+                                "unix time": sample["unix_time"],
+                                "note": sample["note"],
+                                "reliability": sample["reliability"],
+                            },
+                            csv_initialized,
+                            "UN",
+                        )
+                    print(f"[UN] {sample['note']}")
+                    continue
 
-
-            if sample["stream"] in skipped:
-
-                continue
-
-
-
-            if sample["stream"] == "UN":
+                if sample["value"] is None:
+                    continue
 
                 if save_raw:
-
                     append_csv(
-
-                        raw_dir / "stream_UN.csv",
-
-                        ["emotibit time", "unix time", "note", "reliability"],
-
+                        raw_dir / f"stream_{sample['stream']}.csv",
+                        ["emotibit time", "unix time", "value", "reliability"],
                         {
-
                             "emotibit time": sample["emotibit_time_ms"],
-
                             "unix time": sample["unix_time"],
-
-                            "note": sample["note"],
-
+                            "value": sample["value"],
                             "reliability": sample["reliability"],
-
                         },
-
                         csv_initialized,
-
-                        "UN",
-
+                        sample["stream"],
                     )
 
-                print(f"[UN] {sample['note']}")
-
-                continue
-
-
-
-            if sample["value"] is None:
-
-                continue
-
-
-
-            if save_raw:
-
-                append_csv(
-
-                    raw_dir / f"stream_{sample['stream']}.csv",
-
-                    ["emotibit time", "unix time", "value", "reliability"],
-
-                    {
-
-                        "emotibit time": sample["emotibit_time_ms"],
-
-                        "unix time": sample["unix_time"],
-
-                        "value": sample["value"],
-
-                        "reliability": sample["reliability"],
-
-                    },
-
-                    csv_initialized,
-
-                    sample["stream"],
-
-                )
-
-
-
-            if sample["reliability"] < min_reliability:
-
-                continue
-
-            if sample["stream"] not in (ppg_stream, eda_stream):
-
-                continue
-
-
-
-            time_sec = sample["emotibit_time_ms"] / 1000.0
-
-            if session_start is None:
-
-                session_start = time_sec
-
-                session_start_unix = float(sample["unix_time"])
-
-            relative_time = time_sec - session_start
-
-            buffers[sample["stream"]].append((relative_time, sample["value"]))
-
-
-
-            keep = window_size + edge_buffer + stride + 5
-
-            for stream_name in list(buffers):
-
-                while buffers[stream_name] and buffers[stream_name][0][0] < relative_time - keep:
-
-                    buffers[stream_name].popleft()
-
-
-
-            if not live_processing or relative_time < warmup:
-
-                continue
-
-
-
-            while running:
-
-                if last_window_end < 0:
-
-                    window_end = warmup
-
-                else:
-
-                    window_end = last_window_end + stride
-
-                if relative_time < window_end:
-
-                    break
-
-
-
-                window_start = window_end - window_size
-
-                ppg_df = buffer_to_df(buffers[ppg_stream], window_start, window_end)
-
-                eda_df = buffer_to_df(buffers[eda_stream], window_start, window_end)
-
-
-
-                features = extract_window_features(
-
-                    ppg_df,
-
-                    eda_df,
-
-                    window_start=window_start,
-
-                    window_end=window_end,
-
-                    window_size_sec=window_size,
-
-                    visualize=False,
-
-                )
-
-                if features is not None:
-
-                    features["unix time"] = session_start_unix + features["time"]
-
-                    write_header = not live_output_initialized
-
-                    with live_output.open("a", newline="", encoding="utf-8") as handle:
-
-                        writer = csv.DictWriter(handle, fieldnames=FEATURE_COLUMNS)
-
-                        if write_header:
-
-                            writer.writeheader()
-
-                        writer.writerow(features)
-
-                    live_output_initialized = True
-
-
-
-                    hr_bpm = features["hr"]
-
-                    ibi_mean = features["ibi mean"]
-
-                    ibi_stdev = features["ibi stdev"]
-
-                    lf_hf = features["lf/hf"]
-
-                    scr_peaks = float(features["scr peaks"])
-
-                    scr_no_peaks = float(features["scr no peaks"])
-
-
-
-                    status = f"[features @ {features['time']:.1f}s] LF/HF={lf_hf:.3f}"
-
-                    if hr_bpm > 0:
-
-                        hr_outlet.push_sample([float(hr_bpm)])
-
-                        status += f"  HR={hr_bpm:.1f} bpm  -> '{HR_STREAM_NAME}'"
-
+                if sample["reliability"] < min_reliability:
+                    continue
+                if sample["stream"] not in (ppg_stream, eda_stream):
+                    continue
+
+                time_sec = sample["emotibit_time_ms"] / 1000.0
+                if session_start is None:
+                    session_start = time_sec
+                    session_start_unix = float(sample["unix_time"])
+                relative_time = time_sec - session_start
+                buffers[sample["stream"]].append((relative_time, sample["value"]))
+
+                keep = window_size + edge_buffer + stride + 5
+                for stream_name in list(buffers):
+                    while buffers[stream_name] and buffers[stream_name][0][0] < relative_time - keep:
+                        buffers[stream_name].popleft()
+
+                if not live_processing or relative_time < warmup:
+                    continue
+
+                while running:
+                    if last_window_end < 0:
+                        window_end = warmup
                     else:
+                        window_end = last_window_end + stride
+                    if relative_time < window_end:
+                        break
 
-                        status += "  HR=n/a (not enough clean beats yet)"
+                    window_start = window_end - window_size
+                    ppg_df = buffer_to_df(buffers[ppg_stream], window_start, window_end)
+                    eda_df = buffer_to_df(buffers[eda_stream], window_start, window_end)
 
-                    status += (
-
-                        f"  SCR: peaks={scr_peaks:.4f}  n={int(scr_no_peaks)}"
-
-                        f"  -> '{SCR_STREAM_NAME}'"
-
+                    features = extract_window_features(
+                        ppg_df,
+                        eda_df,
+                        window_start=window_start,
+                        window_end=window_end,
+                        window_size_sec=window_size,
+                        visualize=False,
                     )
+                    if features is not None:
+                        features["unix time"] = session_start_unix + features["time"]
+                        write_header = not live_output_initialized
+                        with live_output.open("a", newline="", encoding="utf-8") as handle:
+                            writer = csv.DictWriter(handle, fieldnames=FEATURE_COLUMNS)
+                            if write_header:
+                                writer.writeheader()
+                            writer.writerow(features)
+                        live_output_initialized = True
 
-                    print(status)
+                        hr_bpm = features["hr"]
+                        ibi_mean = features["ibi mean"]
+                        ibi_stdev = features["ibi stdev"]
+                        lf_hf = features["lf/hf"]
+                        scr_peaks = float(features["scr peaks"])
+                        scr_no_peaks = float(features["scr no peaks"])
 
+                        status = f"[features @ {features['time']:.1f}s] LF/HF={lf_hf:.3f}"
+                        if hr_bpm > 0:
+                            hr_outlet.push_sample([float(hr_bpm)])
+                            status += f"  HR={hr_bpm:.1f} bpm  -> '{HR_STREAM_NAME}'"
+                        else:
+                            status += "  HR=n/a (not enough clean beats yet)"
+                        status += (
+                            f"  SCR: peaks={scr_peaks:.4f}  n={int(scr_no_peaks)}"
+                            f"  -> '{SCR_STREAM_NAME}'"
+                        )
+                        print(status)
 
+                        hrv_outlet.push_sample([float(ibi_mean), float(ibi_stdev), float(lf_hf)])
+                        scr_outlet.push_sample([scr_peaks, scr_no_peaks])
 
-                    hrv_outlet.push_sample([float(ibi_mean), float(ibi_stdev), float(lf_hf)])
-
-                    scr_outlet.push_sample([scr_peaks, scr_no_peaks])
-
-
-
-                last_window_end = window_end
-
-                window_count += 1
-
+                    last_window_end = window_end
+                    window_count += 1
 
 
     except KeyboardInterrupt:
