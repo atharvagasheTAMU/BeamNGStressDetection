@@ -297,7 +297,7 @@ def find_LH(ibi, peaks, sample_rate):
         peak = peaks[i]
         ibis = [ibi[i]] * (peak if i == 0 else peak - peaks[i - 1])
         signal.append(ibis)
-    signal = [item for sublist in signal for item in sublist]
+    signal = np.array([item for sublist in signal for item in sublist])
 
     freq, power = sg.welch(signal, fs=sample_rate, scaling="density", nperseg=len(signal))
     step = freq[1] - freq[0]
