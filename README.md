@@ -119,6 +119,12 @@ or `demo`), and stress detection mode.
 Configure BeamNG paths in `beamng_demo/mode_switch_demo.py` (`BEAMNG_HOME`,
 `BEAMNG_BINARY`) before running the driving demo.
 
+`requirements.txt` pins **beamngpy==1.35** to match our lab’s BeamNG.tech
+build. If connection fails with a *protocol version mismatch*, either install
+that pinned version in `.venv` (`pip install beamngpy==1.35`) or upgrade
+BeamNG.tech to match a newer beamngpy — see
+[BeamNGpy compatibility](https://github.com/BeamNG/BeamNGpy#compatibility).
+
 ### Repository layout
 
 | Path | Purpose |

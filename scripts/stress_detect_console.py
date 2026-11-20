@@ -50,7 +50,7 @@ from stress_detection.hr_stress_detector import (
     StressDetector,
     StressState,
 )
-from calibrated_stress_detector import (
+from stress_detection.calibrated_stress_detector import (
     CALIBRATION_SAMPLES,
     CalibratedStressDetector,
     CalibratedStressDetectorConfig,

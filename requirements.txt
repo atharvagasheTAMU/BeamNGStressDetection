@@ -1,6 +1,7 @@
 # Stress detection + BeamNG demo
 numpy>=1.24
 pylsl
-beamngpy>=1.32
+# Pin to lab BeamNG.tech build (protocol v1.26). See README / BeamNGpy compatibility table before changing.
+beamngpy==1.35
 
 # EmotiBit middleware: pip install -r emotibit-live/requirements.txt

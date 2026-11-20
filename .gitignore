@@ -1,7 +1,32 @@
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
 .venv/
 venv/
-.env
 
+# Secrets / local env
+.env
+.env.*
+
+# EmotiBit live captures (under emotibit-live/ when data_dir is "data")
 emotibit-live/data/
+
+# Eye / session exports (EyeTracker-style logs; keep code only)
+Data_*.xlsx
+~$*.xlsx
+
+# Local experiment captures — add more demo CSVs with "!path" if you want them in git
+data/runs/
+data/captures/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -37,7 +37,7 @@ param(
     # Options: console | demo
     #   console - stress_detect_console.py (no BeamNG, just prints stress state)
     #   demo    - mode_switch_stress_demo.py (full BeamNG driving demo)
-    [string]$RunMode = "console",
+    [string]$RunMode = "demo",
 
     [int]$BridgeWaitSeconds = 10,
     [int]$ReplayWaitSeconds = 2
