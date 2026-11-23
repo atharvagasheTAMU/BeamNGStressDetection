@@ -12,6 +12,7 @@
     .\run_demo.ps1
     .\run_demo.ps1 -CsvFile "data\my_recording.csv" -BaselineMode slope
     .\run_demo.ps1 -RunMode demo
+    .\run_demo.ps1 -RunMode npc -BaselineMode slope
 
 .NOTES
     Uses .venv\Scripts\python.exe when present (run .\setup_env.ps1 first).
@@ -34,10 +35,12 @@ param(
     #   and - stressed only if both HR slope AND SCR peak count cross threshold
     [string]$CombinePolicy = "and",
 
-    # Options: console | demo
+    # Options: console | demo | npc
     #   console - stress_detect_console.py (no BeamNG, just prints stress state)
     #   demo    - mode_switch_stress_demo.py (full BeamNG driving demo)
-    [string]$RunMode = "console",
+    #   npc     - mode_switch_stress_npc_demo.py (BeamNG demo + pooled NPC traffic;
+    #             replay starts only after you press Enter in this window)
+    [string]$RunMode = "npc",
 
     [int]$BridgeWaitSeconds = 10,
     [int]$ReplayWaitSeconds = 2
@@ -52,7 +55,9 @@ if (-not (Test-Path $PythonExe)) {
     $PythonExe = "python"
 }
 
-if ($RunMode -eq "demo") {
+if ($RunMode -eq "npc") {
+    $DetectorScript = "mode_switch_stress_npc_demo.py"
+} elseif ($RunMode -eq "demo") {
     $DetectorScript = "mode_switch_stress_demo.py"
 } else {
     $DetectorScript = "stress_detect_console.py"
@@ -67,19 +72,39 @@ Start-Process powershell -ArgumentList @(
 Write-Host "Waiting $BridgeWaitSeconds s before replay..." -ForegroundColor DarkGray
 Start-Sleep -Seconds $BridgeWaitSeconds
 
-Write-Host "Starting replay..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList @(
-    "-NoExit", "-Command",
-    "cd '$RepoRoot\emotibit-live'; & '$PythonExe' replay.py '$CsvPath' --speed $ReplaySpeed"
-)
+function Start-Replay {
+    Write-Host "Starting replay..." -ForegroundColor Cyan
+    # No --expand: replay.py leaves multi-value packet expansion off by default.
+    Start-Process powershell -ArgumentList @(
+        "-NoExit", "-Command",
+        "cd '$RepoRoot\emotibit-live'; & '$PythonExe' replay.py '$CsvPath' --speed $ReplaySpeed"
+    )
+}
 
-Write-Host "Waiting $ReplayWaitSeconds s before stress detector..." -ForegroundColor DarkGray
-Start-Sleep -Seconds $ReplayWaitSeconds
+function Start-Detector {
+    Write-Host "Starting $DetectorScript..." -ForegroundColor Cyan
+    Start-Process powershell -ArgumentList @(
+        "-NoExit", "-Command",
+        "cd '$RepoRoot\scripts'; & '$PythonExe' $DetectorScript --baseline-mode $BaselineMode --combine-policy $CombinePolicy"
+    )
+}
 
-Write-Host "Starting $DetectorScript..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList @(
-    "-NoExit", "-Command",
-    "cd '$RepoRoot\scripts'; & '$PythonExe' $DetectorScript --baseline-mode $BaselineMode --combine-policy $CombinePolicy"
-)
+if ($RunMode -eq "npc") {
+    # The NPC demo needs a long startup (level load + NPC pool connect) before
+    # it listens on LSL. Start it first and only begin the replay once you
+    # confirm, so a finite recording is not consumed before the detector is ready.
+    Start-Detector
+    Write-Host ""
+    Write-Host "Wait until the detector window prints '[...] Receiver ready' and the car is driving." -ForegroundColor Yellow
+    Read-Host "Press Enter to start the replay"
+    Start-Replay
+} else {
+    Start-Replay
+
+    Write-Host "Waiting $ReplayWaitSeconds s before stress detector..." -ForegroundColor DarkGray
+    Start-Sleep -Seconds $ReplayWaitSeconds
+
+    Start-Detector
+}
 
 Write-Host "All processes launched." -ForegroundColor Green

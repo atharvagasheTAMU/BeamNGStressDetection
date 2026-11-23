@@ -88,7 +88,15 @@ python scripts/stress_detect_console.py --baseline-mode combined
 
 # Full demo with BeamNG
 python scripts/mode_switch_stress_demo.py --baseline-mode slope
+
+# Full demo on Southern Highway with pooled NPC traffic (same flags)
+python scripts/mode_switch_stress_npc_demo.py --baseline-mode slope
 ```
+
+NPC demo notes: NPC spawns, the vehicle pool, and the map are configured in
+`beamng_demo/npc_traffic/config.py`. Aggressive and defensive currently share
+one default path; set `AGGRESSIVE_TRACK_PATH` / `DEFENSIVE_TRACK_PATH` at the top of
+`scripts/mode_switch_stress_npc_demo.py` once the new tracks exist.
 
 Press `Ctrl+C` in a terminal to stop that program.
 
@@ -132,7 +140,9 @@ BeamNG.tech to match a newer beamngpy — see
 | `emotibit-live/` | UDP ingest, feature extraction, `lsl_bridge.py` (HR / HRV / SCR on LSL) |
 | `stress_detection/` | LSL consumer + stress detector modules (see its own README) |
 | `beamng_demo/` | Track JSON files + shared BeamNG path-switching helpers |
-| `scripts/` | Entry points: console test and BeamNG stress demo |
+| `beamng_demo/npc_traffic/` | Pooled NPC traffic (config, vehicle pool, trigger/despawn monitor) |
+| `beamng_demo/tracks/southern_highway/` | Southern Highway main track + NPC route JSONs |
+| `scripts/` | Entry points: console test, BeamNG stress demo, BeamNG stress demo with NPC traffic |
 
 Only **one** process may bind the EmotiBit UDP port (`12346` by default in
 `emotibit-live/config.yaml`). Use `lsl_bridge.py` for this project — not
