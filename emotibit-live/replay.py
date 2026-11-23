@@ -120,7 +120,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--expand",
-        default="PG,EA",
+        # default="PG,EA", # for old parser compatibility
+        default="",
         help="Comma-separated streams to split multi-value packets (use '' to disable)",
     )
     args = parser.parse_args()
