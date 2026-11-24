@@ -55,10 +55,13 @@ from beamng_demo.mode_switch_demo import (
     track_polyline,
 )
 from beamng_demo.npc_traffic.config import (
+    AGGRESSIVE_TRACK_PATH,
+    DEFENSIVE_TRACK_PATH,
     LEVEL_NAME,
     MAIN_TRACK_PATH,
     MAX_ASSIGNS_PER_TICK,
     MAX_RELEASES_PER_TICK,
+    NEUTRAL_TRACK_PATH,
     NODE_REACH_RADIUS,
     NPC_SPAWNS,
     PARK_LATERAL_OFFSET_M,
@@ -73,6 +76,7 @@ from beamng_demo.npc_traffic.pool_setup import (
     print_pool_distribution,
     validate_pool_models,
     validate_spawns,
+    warn_permanent_npcs,
 )
 from beamng_demo.npc_traffic.vehicle_pool import NpcVehiclePool
 from beamng_demo.npc_traffic.vehicle_pool_runtime import NpcVehiclePoolMonitor
@@ -90,36 +94,25 @@ from mode_switch_stress_demo import (
 )
 
 # ===========================================================================
-# ===== DRIVING TRACKS — CHANGE THESE WHEN THE NEW SCENARIO TRACKS ARRIVE =====
+# ================= DRIVING TRACKS (per stress mode) ========================
 # ===========================================================================
 #
-# The new Southern Highway scenario has no dedicated aggressive / defensive
-# tracks yet (a colleague is producing them). Until then ALL three driving
-# modes use the same default path, so switching modes is currently a no-op on
-# the road (the switching machinery still runs and logs).
+# Southern Highway driving tracks (defined in npc_traffic/config.py):
+#   neutral    -> TNmapedited7.json   (also the bridge track when switching and
+#                                      the start track for 'rolling'/'calibrated')
+#   aggressive -> aggressive1.json
+#   defensive  -> Passive1.json
 #
-# TODO(new-tracks): when the real tracks are delivered:
-#   1. Drop the JSON files into  beamng_demo/tracks/southern_highway/
-#   2. Point the two lines below at them, e.g.
-#          AGGRESSIVE_TRACK_PATH = SCENARIO_TRACKS_DIR / "aggressive_southern.json"
-#          DEFENSIVE_TRACK_PATH  = SCENARIO_TRACKS_DIR / "defensive_southern.json"
-#   3. (Optional) point NEUTRAL_TRACK_PATH at a neutral variant too. Neutral is
-#      used for the bridge nodes when switching and as the start track for the
-#      'rolling' / 'calibrated' baseline modes.
-#   4. Keep the new tracks on the SAME road with the SAME node ordering as the
-#      default track (mode switching maps the current node index across tracks).
-#   5. Leave TRIGGER_TRACK_PATH alone unless NPC ego_trigger_node values in
-#      npc_traffic/config.py are re-numbered against a new file: NPC triggers
-#      are position-based against that track, independent of which driving
-#      track the ego is currently on.
+# All three follow the same road with the same node count/ordering (426 nodes);
+# only the speed profile differs. To use different tracks later, change the
+# *_TRACK_PATH values in npc_traffic/config.py (keep the same road + node
+# ordering, since mode switching maps the current node index across tracks).
+#
+# NPC ego_trigger_node numbers are 1-based nodes on TRIGGER_TRACK_PATH
+# (aggressive1.json). Triggers are position-based, so they fire regardless of
+# which driving track the ego is on. Only change this if you re-number the
+# ego_trigger_node values in npc_traffic/config.py against another file.
 
-DEFAULT_PATH = MAIN_TRACK_PATH   # beamng_demo/tracks/southern_highway/TNmapedited7.json
-
-NEUTRAL_TRACK_PATH    = DEFAULT_PATH
-AGGRESSIVE_TRACK_PATH = DEFAULT_PATH   # <-- CHANGE to the new aggressive track
-DEFENSIVE_TRACK_PATH  = DEFAULT_PATH   # <-- CHANGE to the new defensive track
-
-# Track that NPC ego_trigger_node numbers refer to (see note 5 above).
 TRIGGER_TRACK_PATH = MAIN_TRACK_PATH
 
 EGO_ID = "ego"
@@ -390,6 +383,7 @@ def main() -> None:
     model_counts = validate_pool_models()
     print(f"  Loaded {len(NPC_SPAWNS)} NPC configs", flush=True)
     print_pool_distribution(model_counts)
+    warn_permanent_npcs(model_counts)
 
     # -- BeamNG + scenario (ego + parked NPC pool) ---------------------------
     beamng = BeamNGpy("localhost", 25252, home=BEAMNG_HOME, binary=BEAMNG_BINARY)

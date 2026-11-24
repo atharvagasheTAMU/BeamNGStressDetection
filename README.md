@@ -94,9 +94,10 @@ python scripts/mode_switch_stress_npc_demo.py --baseline-mode slope
 ```
 
 NPC demo notes: NPC spawns, the vehicle pool, and the map are configured in
-`beamng_demo/npc_traffic/config.py`. Aggressive and defensive currently share
-one default path; set `AGGRESSIVE_TRACK_PATH` / `DEFENSIVE_TRACK_PATH` at the top of
-`scripts/mode_switch_stress_npc_demo.py` once the new tracks exist.
+`beamng_demo/npc_traffic/config.py`, including the neutral / aggressive /
+defensive driving tracks (`TNmapedited7.json` / `aggressive1.json` /
+`Passive1.json`). `POOL_SIZE` is small (5) for low-end PCs; raise it (about 25)
+and tune `POOL_MODELS` on a strong machine.
 
 Press `Ctrl+C` in a terminal to stop that program.
 

@@ -50,6 +50,26 @@ def validate_pool_models() -> dict[str, int]:
     return model_counts
 
 
+def warn_permanent_npcs(model_counts: dict[str, int]) -> None:
+    """Warn when NPCs that never despawn (npc_despawn_node <= 0) could hold
+    every pool slot of a model, leaving later NPCs of that model queued forever."""
+    permanent: dict[str, list[str]] = {}
+    for config in NPC_SPAWNS:
+        if config.npc_despawn_node <= 0:
+            permanent.setdefault(config.npc_model, []).append(config.vid)
+
+    for model, vids in permanent.items():
+        slots = model_counts.get(model, 0)
+        if len(vids) >= slots:
+            print(
+                f"  [WARNING] {len(vids)} '{model}' NPCs never despawn ({', '.join(vids)}) "
+                f"but the pool has only {slots} '{model}' slot(s). Once they all trigger, "
+                f"later '{model}' NPCs will wait forever for a slot. "
+                f"Increase POOL_SIZE or give them an npc_despawn_node.",
+                flush=True,
+            )
+
+
 def print_pool_distribution(model_counts: dict[str, int]) -> None:
     print(f"  Pool: {sum(model_counts.values())} slots across {len(model_counts)} models")
     for model, count in model_counts.items():
